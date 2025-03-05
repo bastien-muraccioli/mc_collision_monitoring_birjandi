@@ -1,29 +1,21 @@
-mc_rtc new plugin template
+mc_rtc Collision Monitoring Birjandi plugin
 ==
 
-This project is a template for a new plugin wihtin [mc_rtc]
+This project is a [mc_rtc] plugin implementing the **Observer-Extended Direct Method** for collision monitoring in robot manipulators using **proprioception and a single IMU sensor**.
 
-It comes with:
-- a CMake project that can build a plugin for [mc_rtc], the project can be put within [mc_rtc] source-tree for easier updates
-- clang-format files
-- automated GitHub Actions builds on three major platforms
+This implementation follows the methodology described in the paper:
 
-Quick start
---
+Observer-Extended Direct Method for Collision Monitoring in Robot Manipulators Using Proprioception and IMU Sensing.
 
-1. Renaming the controller from `CollisionMonitoringBirjandi` to `MyPlugin`. In a shell (Git Bash on Windows, replace sed with gsed on macOS):
+It has been implemented and tested on the **Kinova robotic arm**, with an **IMU mounted on the last joint** to detect collisions at the **end effector**, just like in the experiment described in the paper.
 
-```bash
-sed -i -e's/CollisionMonitoringBirjandi/MyPlugin/g' `find . -type f`
-git mv src/CollisionMonitoringBirjandi.cpp src/MyPlugin.cpp
-git mv src/CollisionMonitoringBirjandi.h src/MyPlugin.h
-git mv etc/CollisionMonitoringBirjandi.in.yaml etc/MyPlugin.in.yaml
-```
+# References
 
-2. You can customize the project name in vcpkg.json as well, note that this must follow [vcpkg manifest rules](https://github.com/microsoft/vcpkg/blob/master/docs/users/manifests.md)
+S. A. B. Birjandi, J. Kühn and S. Haddadin, "Observer-Extended Direct Method for Collision Monitoring in Robot Manipulators Using Proprioception and IMU Sensing," in IEEE Robotics and Automation Letters, vol. 5, no. 2, pp. 954-961, April 2020, doi: 10.1109/LRA.2020.2967287.
+keywords: {Collision avoidance;Robot sensing systems;Monitoring;Estimation;Torque;Computational modeling;Collision avoidance;sensor fusion;robot safety},
 
-3. Build and install the project
+# Author
 
-4. Run using your [mc_rtc] interface of choice, add `MyPlugin` to the `Plugins` configuration entry or enable the autoload option
+This implementation was developed by Bastien Muraccioli and is not affiliated with the original authors of the referenced paper.
 
 [mc_rtc]: https://jrl-umi3218.github.io/mc_rtc/
