@@ -19,9 +19,17 @@ configure_file(etc/CollisionMonitoringBirjandi.in.yaml
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/CollisionMonitoringBirjandi.yaml"
         DESTINATION "${MC_PLUGINS_RUNTIME_INSTALL_PREFIX}/etc")
 
-set(plugin_SRC src/CollisionMonitoringBirjandi.cpp)
+set(plugin_SRC 
+  src/CollisionMonitoringBirjandi.cpp
+  src/BirjandiStateDynamics.cpp
+  src/LpfThreshold.cpp
+  )
 
-set(plugin_HDR src/CollisionMonitoringBirjandi.h)
+set(plugin_HDR 
+  src/CollisionMonitoringBirjandi.h
+  src/BirjandiStateDynamics.h
+  src/LpfThreshold.h
+  )
 
 # The add_plugin macro is provided by mc_rtc
 add_plugin(CollisionMonitoringBirjandi "${plugin_SRC}" "${plugin_HDR}")

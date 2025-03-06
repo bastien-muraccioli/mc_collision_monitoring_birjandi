@@ -1,1 +1,18 @@
 ---
+collision_monitoring_birjandi:
+  imuBodyName: "Accelerometer"
+  robotBodyName: "FT_sensor_mounting"
+  jointBodyName: "spherical_wrist_2_link"
+  kt:
+      joint_1: 0.11
+      joint_2: 0.11
+      joint_3: 0.11
+      joint_4: 0.11
+      joint_5: 0.076
+      joint_6: 0.076
+      joint_7: 0.076
+
+  gear_ratio: 100.0
+  threshold_offset: 2.0
+  threshold_filter: 0.005
+
