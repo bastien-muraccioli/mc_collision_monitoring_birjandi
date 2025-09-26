@@ -11,7 +11,7 @@ namespace stateObservation
             a = Vector3::Zero();
             X_pos_ = Vector3::Zero();
             R_joint_ = stateObservation::kine::Orientation::zeroRotation();
-            unit << 0,1,0;
+            unit << 0,0,1;
         }
 
     Vector BirjandiStateDynamics::stateDynamics(const Vector & x, const Vector & u, TimeIndex k)

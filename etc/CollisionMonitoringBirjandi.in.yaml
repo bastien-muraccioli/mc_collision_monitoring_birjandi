@@ -16,3 +16,10 @@ collision_monitoring_birjandi:
   threshold_offset: 2.0
   threshold_filter: 0.005
 
+  qdddot: 0
+  qCovariance: 1e-8
+  acceleroCovariance: 0.3
+  gyroCovariance: 1e-8
+  stateCov: 3e-9
+  stateInitCov: 1e-8
+

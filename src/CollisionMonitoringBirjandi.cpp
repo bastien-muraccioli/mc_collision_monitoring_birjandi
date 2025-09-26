@@ -19,6 +19,12 @@ void CollisionMonitoringBirjandi::init(mc_control::MCGlobalController & controll
   auto & robot = ctl.robot();
   auto & realRobot = ctl.realRobot();
 
+  // Make sure to have obstacle detection
+  if(!ctl.controller().datastore().has("Obstacle detected"))
+  {
+    ctl.controller().datastore().make<bool>("Obstacle detected", false);
+  }
+
   // Get the configuration
   auto plugin_config = config("collision_monitoring_birjandi");
   imuBodyName_.assign(plugin_config("imuBodyName"));
@@ -28,6 +34,13 @@ void CollisionMonitoringBirjandi::init(mc_control::MCGlobalController & controll
   gear_ratio = plugin_config("gear_ratio", 100.0);
   threshold_offset_ = plugin_config("threshold_offset", 2.0);
   threshold_filtering_ = plugin_config("threshold_filtering", 0.05);
+
+  qdddot_ = plugin_config("qdddot", 0.0);
+  qCovariance_ = plugin_config("qCovariance", 0.0001);
+  acceleroCovariance_ = plugin_config("acceleroCovariance", 0.0001);
+  gyroCovariance_ = plugin_config("gyroCovariance", 0.0001);
+  stateCov = plugin_config("stateCov", 0.0001);
+  stateInitCov = plugin_config("stateInitCov", 0.0001);
   
 
   // Copy the robot to the controller
@@ -65,6 +78,7 @@ void CollisionMonitoringBirjandi::init(mc_control::MCGlobalController & controll
   qdot_ = 0.0;
   qddot_ = 0.0;
   qddot_qp_ = 0.0;
+  qdot_qp_ = 0.0;
   qddot_accelero_ = 0.0;
 
   // Compute the covariance matrix
@@ -81,7 +95,7 @@ void CollisionMonitoringBirjandi::init(mc_control::MCGlobalController & controll
   filter_.setStateCovariance(Eigen::MatrixXd::Identity(STATE_SIZE, STATE_SIZE) * stateInitCov);
   
   Eigen::VectorXd x0(STATE_SIZE);
-  x0 << q_, 0, 0, 0;
+  x0 << q_, 0, 0, qdddot_;
   filter_.setState(x0, 0);
 
   Eigen::VectorXd y0(MEASUREMENT_SIZE);
@@ -207,6 +221,7 @@ void CollisionMonitoringBirjandi::computeTauExtInputRobot(mc_control::MCGlobalCo
     Eigen::VectorXd realAlphaD_v_hat(jointNumber_);
 
     qddot_qp_ = realAlphaD_v[5];
+    qdot_qp_ = realAlpha_v[5];
 
     realQ_v_hat = realQ_v;
     realAlpha_v_hat = realAlpha_v;
@@ -330,9 +345,10 @@ void CollisionMonitoringBirjandi::updateFilter(mc_control::MCGlobalController & 
     auto X_pos = R_joint_.transpose() * (P_imu - P_joint);
     stateDynamics_.setJointPosition(X_pos);
 
-    gyro_ = R_joint_.transpose() * imu.angularVelocity();
-    gyro_[1] = -gyro_[1];
-    accelero_ = R_joint_.transpose() * imu.linearAcceleration();
+    // gyro_ = R_joint_.transpose() * imu.angularVelocity();
+    gyro_ = R_joint_ * imu.angularVelocity();
+    // gyro_ = -gyro_;
+    accelero_ = R_joint_ * imu.linearAcceleration();
     // accelero_[1] = -accelero_[1];
     
     Eigen::VectorXd y(7);
@@ -378,18 +394,19 @@ void CollisionMonitoringBirjandi::addPlot(mc_control::MCGlobalController & ctl)
     gui.addPlot(
         "qdot CollisionMonitoringBirjandi",
         mc_rtc::gui::plot::X("t", [this]() { return counter_; }),
-        mc_rtc::gui::plot::Y("gyro", [this]() { return gyro_[1]; }, mc_rtc::gui::Color::Blue),
-        mc_rtc::gui::plot::Y("qdot_hat", [this]() { return qdot_hat_; }, mc_rtc::gui::Color::Red),
-        mc_rtc::gui::plot::Y("qdot", [this]() { return qdot_; }, mc_rtc::gui::Color::Green)
+        mc_rtc::gui::plot::Y("gyro", [this]() { return gyro_[2]; }, mc_rtc::gui::Color::Blue),
+        mc_rtc::gui::plot::Y("qdot", [this]() { return qdot_; }, mc_rtc::gui::Color::Green),
+        mc_rtc::gui::plot::Y("qdot_qp", [this]() { return qdot_qp_; }, mc_rtc::gui::Color::Magenta),
+        mc_rtc::gui::plot::Y("qdot_hat", [this]() { return qdot_hat_; }, mc_rtc::gui::Color::Red)
     );
     gui.addPlot(
         "qddot CollisionMonitoringBirjandi",
         mc_rtc::gui::plot::X("t", [this]() { return counter_; }),
         mc_rtc::gui::plot::Y("qddot_accelero", [this]() { return qddot_accelero_; }, mc_rtc::gui::Color::Cyan),
-        mc_rtc::gui::plot::Y("qddot_qp", [this]() { return qddot_qp_; }, mc_rtc::gui::Color::Magenta),
-        mc_rtc::gui::plot::Y("ya", [this]() { return ya_[1]; }, mc_rtc::gui::Color::Blue),
-        mc_rtc::gui::plot::Y("qddot_hat", [this]() { return qddot_hat_; }, mc_rtc::gui::Color::Red),
-        mc_rtc::gui::plot::Y("qddot", [this]() { return qddot_; }, mc_rtc::gui::Color::Green)
+        // mc_rtc::gui::plot::Y("qddot_qp", [this]() { return qddot_qp_; }, mc_rtc::gui::Color::Magenta),
+        mc_rtc::gui::plot::Y("ya", [this]() { return ya_[2]; }, mc_rtc::gui::Color::Blue),
+        mc_rtc::gui::plot::Y("qddot", [this]() { return qddot_; }, mc_rtc::gui::Color::Green),
+        mc_rtc::gui::plot::Y("qddot_hat", [this]() { return qddot_hat_; }, mc_rtc::gui::Color::Red)
     );
 
     gui.addPlot(
@@ -397,8 +414,8 @@ void CollisionMonitoringBirjandi::addPlot(mc_control::MCGlobalController & ctl)
         mc_rtc::gui::plot::X("t", [this]() { return counter_; }),
         mc_rtc::gui::plot::Y("tau_high", [this]() { return tau_high_[5]; }, mc_rtc::gui::Color::Gray),
         mc_rtc::gui::plot::Y("tau_low", [this]() { return tau_low_[5]; }, mc_rtc::gui::Color::Gray),
-        mc_rtc::gui::plot::Y("tau_ext_hat", [this]() { return tau_ext_hat_[5]; }, mc_rtc::gui::Color::Red),
-        mc_rtc::gui::plot::Y("tau_ext", [this]() { return tau_ext_[5]; }, mc_rtc::gui::Color::Green)
+        mc_rtc::gui::plot::Y("tau_ext", [this]() { return tau_ext_[5]; }, mc_rtc::gui::Color::Green),
+        mc_rtc::gui::plot::Y("tau_ext_hat", [this]() { return tau_ext_hat_[5]; }, mc_rtc::gui::Color::Red)
     );
 }
 
@@ -419,7 +436,7 @@ void CollisionMonitoringBirjandi::addLog(mc_control::MCGlobalController & ctl)
     ctl.controller().logger().addLogEntry("Birjandi_ya", [this]() { return ya_; });
     ctl.controller().logger().addLogEntry("Birjandi_qddot_accelero", [this]() { return qddot_accelero_; });
     ctl.controller().logger().addLogEntry("Birjandi_qddot_qp", [this]() { return qddot_qp_; });
-    ctl.controller().logger().addLogEntry("Birjandi_obstacle_detected", [this]() { return obstacle_detected_; });
+    ctl.controller().logger().addLogEntry("Birjandi_obstacleDetected", [this]() { return obstacle_detected_; });
     ctl.controller().logger().addLogEntry("Birjandi_tau_high", [this]() { return tau_high_; });
     ctl.controller().logger().addLogEntry("Birjandi_tau_low", [this]() { return tau_low_; });
 }

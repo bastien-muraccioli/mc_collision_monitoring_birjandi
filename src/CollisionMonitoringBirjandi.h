@@ -77,9 +77,11 @@ private:
   // Ground truth (derived from encoders)
   double qdot_;
   double qddot_;
+  double qdddot_;
   double distance_imu_joint_ = 0.312685;
   double a_filter_ = 0.1;
   double qddot_qp_;
+  double qdot_qp_;
   double qddot_accelero_;
 
   // stateObservation::kine::Orientation R_joint_;
